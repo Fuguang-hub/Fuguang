@@ -1,0 +1,33 @@
+flowchart TD
+    subgraph INIT["① 初始化"]
+        A["启动程序"] --> B["读取 config.ini<br/>api_key / base_url / model"]
+        B --> C["初始化 OpenAI client"]
+        C --> D["定义 tools 列表<br/>12 个 function call"]
+        D --> E["messages = []<br/>保存多轮对话历史"]
+    end
+
+    subgraph MAIN["② 对话主循环 while True"]
+        F["input 读取用户问题"] --> G["messages 追加 user 消息"]
+        G --> H["chat.completions.create<br/>stream=True + tools"]
+        H --> I["遍历流式 chunk"]
+        I --> J["累加 delta.content<br/>打字机实时打印"]
+        I --> K["累加 delta.tool_calls<br/>按 index 拼接 arguments"]
+        J --> L{"tool_calls 为空 ?"}
+        K --> L
+        L -->|"是：回答结束"| M["messages 追加 assistant 回复"]
+        M --> F
+        L -->|"否：需要调用工具"| N["messages 追加 assistant<br/>携带 tool_calls"]
+        N --> O["json.loads 解析参数<br/>按工具名 if/elif 分发"]
+        O --> P["messages 追加 role=tool<br/>写入执行结果"]
+        P --> H
+    end
+
+    subgraph TOOL["③ 工具实现（12 个）"]
+        O --> T1["getDate<br/>本地 date 命令"]
+        O --> T2["isLeapYear<br/>Python 计算闰年"]
+        O --> T3["getCwd / listDir / getFileType<br/>Python 只读查询"]
+        O --> T4["readFile / createFile / editFile<br/>Python 文本读写"]
+        O --> T5["createDir / deleteDir / deleteFile / renamePath<br/>Python 文件系统增删改"]
+    end
+
+    E --> F
